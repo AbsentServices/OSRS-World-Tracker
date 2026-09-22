@@ -15,7 +15,7 @@ bash
 
 
 
-## Step-by-Step GitHub Upload Instructions
+### Step-by-Step GitHub Upload Instructions
 
 Run the following commands in your terminal from the root folder of your project (`osrs-world-tracker/`):
 
