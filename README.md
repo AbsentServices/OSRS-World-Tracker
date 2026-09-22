@@ -9,7 +9,7 @@ A real-time Old School RuneScape world monitoring system featuring web sockets, 
 
 ## Quick Start
 Clone repository:
-   ```bash
+bash
    git clone [https://github.com/YOUR_USERNAME/osrs-world-tracker.git](https://github.com/YOUR_USERNAME/osrs-world-tracker.git)
    cd osrs-world-tracker
 
@@ -19,7 +19,7 @@ Clone repository:
 
 Run the following commands in your terminal from the root folder of your project (`osrs-world-tracker/`):
 
-```bash
+bash
 # 1. Initialize local Git repository
 git init
 
