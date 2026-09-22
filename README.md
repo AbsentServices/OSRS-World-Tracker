@@ -14,7 +14,7 @@ A real-time Old School RuneScape world monitoring system featuring web sockets, 
    cd osrs-world-tracker
 
 
----
+
 
 ### Step-by-Step GitHub Upload Instructions
 
