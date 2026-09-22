@@ -31,25 +31,25 @@ npm start
 
 
 
-### Step-by-Step GitHub Upload Instructions
+# Step-by-Step GitHub Upload Instructions
 
 Run the following commands in your terminal from the root folder of your project (`osrs-world-tracker/`):
 
 bash
-# 1. Initialize local Git repository
+## 1. Initialize local Git repository
 git init
 
-# 2. Stage all files
+## 2. Stage all files
 git add .
 
-# 3. Commit files
+## 3. Commit files
 git commit -m "Initial commit: OSRS World Tracker with WebSockets, Webpage, and Discord Webhooks"
 
-# 4. Rename main branch
+## 4. Rename main branch
 git branch -M main
 
-# 5. Link your GitHub repository (replace URL with your GitHub repo link)
+## 5. Link your GitHub repository (replace URL with your GitHub repo link)
 git remote add origin https://github.com/YOUR_USERNAME/osrs-world-tracker.git
 
-# 6. Push code to GitHub
+## 6. Push code to GitHub
 git push -u origin main
