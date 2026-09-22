@@ -8,15 +8,14 @@ A real-time Old School RuneScape world monitoring system featuring web sockets, 
 - **Tailwind Dashboard:** Clean, responsive UI displaying live activity streams and current world listings.
 
 ## Quick Start
-1. Clone repository:
+Clone repository:
    ```bash
    git clone [https://github.com/YOUR_USERNAME/osrs-world-tracker.git](https://github.com/YOUR_USERNAME/osrs-world-tracker.git)
    cd osrs-world-tracker
 
 
 
-
-### Step-by-Step GitHub Upload Instructions
+## Step-by-Step GitHub Upload Instructions
 
 Run the following commands in your terminal from the root folder of your project (`osrs-world-tracker/`):
 
