@@ -10,8 +10,24 @@ A real-time Old School RuneScape world monitoring system featuring web sockets, 
 ## Quick Start
 Clone repository:
 bash
-   git clone [https://github.com/YOUR_USERNAME/osrs-world-tracker.git](https://github.com/YOUR_USERNAME/osrs-world-tracker.git)
+1.   git clone [https://github.com/YOUR_USERNAME/osrs-world-tracker.git](https://github.com/YOUR_USERNAME/osrs-world-tracker.git)
    cd osrs-world-tracker
+
+2. Install dependencies:
+Bash
+npm install
+
+3. Configure environment variables:
+Bash
+cp .env.example .env
+
+**Add your Discord Webhook URL to .env.**
+
+4. Run the server:
+Bash
+npm start
+
+5. **Open http://localhost:4000 in your browser.**
 
 
 
