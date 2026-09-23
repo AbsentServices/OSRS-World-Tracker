@@ -7,6 +7,9 @@ A real-time Old School RuneScape world monitoring system featuring web sockets, 
 - **Discord Webhook Alerts:** Triggers formatted rich embeds when player spikes/drops exceed a configured threshold.
 - **Tailwind Dashboard:** Clean, responsive UI displaying live activity streams and current world listings.
 
+![Website](/images/website.png)
+![Discordwebhook](/images/discordwebhook.png)
+
 ## Quick Start
 Clone repository:
 bash
