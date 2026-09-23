@@ -25,7 +25,8 @@ let activityLogs = [];
 async function fetchWorldData() {
     try {
         const response = await axios.get(
-            'https://matchmaking.runescape.com/m=serverlist_oldschool/serverlist.json?order=MWAT'
+            //'https://matchmaking.runescape.com/m=serverlist_oldschool/serverlist.json?order=MWAT'
+            'https://oldschool.runescape.com/slu?order=WmpLA'
         );
         
         const currentData = {};
