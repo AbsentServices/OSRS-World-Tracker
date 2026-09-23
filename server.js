@@ -1,3 +1,4 @@
+javascript
 const express = require('express');
 const axios = require('axios');
 const http = require('http');
@@ -21,28 +22,35 @@ const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL_MS || '30000', 10);
 let previousWorldData = {};
 let activityLogs = [];
 
-// Fetch OSRS server listing via OSRS Wiki API
+// Helper function to map integer location IDs to readable names
+function getLocationName(locationId) {
+    const locations = {
+        0: 'US East',
+        1: 'US West',
+        2: 'United Kingdom',
+        3: 'Australia',
+        7: 'Germany'
+    };
+    return locations[locationId] || 'Unknown';
+}
+
+// Fetch OSRS server listing via RuneLite API
 async function fetchWorldData() {
     try {
-        const response = await axios.get(
-            'https://runescape.wiki/api/v2/osrs/worlds',
-            {
-                headers: {
-                    'User-Agent': 'OSRS-World-Tracker - @absent'
-                }
+        const response = await axios.get('https://api.runelite.net/runelite-1.0.0/worlds.js', {
+            headers: {
+                'User-Agent': 'OSRS-World-Tracker - @absent'
             }
-        );
+        });
         
         const currentData = {};
-        // If the response returns an array directly or wraps it under a property:
-        const rawData = response.data.worlds || response.data;
-        const list = Array.isArray(rawData) ? rawData : [];
+        const list = Array.isArray(response.data) ? response.data : [];
 
         list.forEach(w => {
-            const worldId = w.id || w.number;
+            const worldId = w.id; // World number (e.g., 301)
             currentData[worldId] = {
                 players: w.players,
-                location: w.location || 'Unknown',
+                location: getLocationName(w.location),
                 activity: w.activity || 'Standard'
             };
         });
@@ -132,3 +140,7 @@ fetchWorldData();
 server.listen(PORT, () => {
     console.log(`OSRS World Tracker online at http://localhost:${PORT}`);
 });
+
+```
+
+Save `server.js` and restart your Node server (`node server.js`).
