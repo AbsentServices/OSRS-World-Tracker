@@ -33,32 +33,54 @@ function getLocationName(locationId) {
     return locations[locationId] || 'Unknown';
 }
 
-// Fetch OSRS server listing via RuneLite API
+// Fetch OSRS server listing with fallback endpoint handling
 async function fetchWorldData() {
-    try {
-        const response = await axios.get('https://api.runelite.net/runelite-1.0.0/worlds.js', {
-            headers: {
-                'User-Agent': 'OSRS-World-Tracker - @absent'
-            }
-        });
-        
-        const currentData = {};
-        const list = Array.isArray(response.data) ? response.data : [];
+    const endpoints = [
+        'https://game.runescape.com/gamelist.json',
+        'https://api.runelite.net/runelite-1.0.0/worlds.js'
+    ];
 
-        list.forEach(w => {
-            const worldId = w.id; // World number (e.g., 301)
+    let responseData = null;
+
+    for (const url of endpoints) {
+        try {
+            const res = await axios.get(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) OSRS-World-Tracker/1.0'
+                },
+                timeout: 5000
+            });
+            if (res.data) {
+                responseData = res.data;
+                break;
+            }
+        } catch (e) {
+            // Try next endpoint if this one 404s or times out
+            continue;
+        }
+    }
+
+    if (!responseData) {
+        console.error('Error querying OSRS servers: All endpoints failed or returned 404');
+        return;
+    }
+
+    const currentData = {};
+    const list = Array.isArray(responseData) ? responseData : (responseData.worlds || []);
+
+    list.forEach(w => {
+        const worldId = w.id || w.node;
+        if (worldId) {
             currentData[worldId] = {
-                players: w.players,
-                location: getLocationName(w.location),
+                players: w.players ?? w.num_players ?? 0,
+                location: typeof w.location === 'number' ? getLocationName(w.location) : (w.location || 'Unknown'),
                 activity: w.activity || 'Standard'
             };
-        });
+        }
+    });
 
-        detectChanges(currentData);
-        previousWorldData = currentData;
-    } catch (error) {
-        console.error('Error querying OSRS servers:', error.message);
-    }
+    detectChanges(currentData);
+    previousWorldData = currentData;
 }
 
 function detectChanges(currentData) {
@@ -139,7 +161,3 @@ fetchWorldData();
 server.listen(PORT, () => {
     console.log(`OSRS World Tracker online at http://localhost:${PORT}`);
 });
-
-```
-
-Save `server.js` and restart your Node server (`node server.js`).
