@@ -64,9 +64,34 @@ async function fetchWorldData() {
 
         const $ = cheerio.load(response.data);
         const currentData = {};
+       $('table tr').each((_, row) => {
+    const cells = $(row).find('td');
+    
+    if (cells.length < 3) return;
 
+    const worldText = $(cells[0]).text().trim();
+    const playersText = $(cells[1]).text().trim();
+    const locationText = $(cells[2]).text().trim();
+    const activityText = cells.length > 3 ? $(cells[3]).text().trim() : 'Standard';
+
+    // 🛑 Filter out F2P worlds
+    if (activityText === 'Free') return;
+
+    const worldIdMatch = worldText.match(/\d+/);
+    if (worldIdMatch) {
+        const worldId = parseInt(worldIdMatch[0], 10);
+        const players = parseInt(playersText.replace(/,/g, ''), 10) || 0;
+
+        currentData[worldId] = {
+            players,
+            location: locationText || 'Unknown',
+            activity: activityText || 'Standard'
+        };
+    }
+});
         // Loop through all table rows across the page
-        $('table tr').each((_, row) => {
+        // This Tracks all worlds even F2p
+ /*       $('table tr').each((_, row) => {
             const cells = $(row).find('td');
             
             // Skip headers or rows with fewer than 3 cells
@@ -89,7 +114,7 @@ async function fetchWorldData() {
                     activity: activityText || 'Standard'
                 };
             }
-        });
+        });*/
 
         if (Object.keys(currentData).length === 0) {
             console.warn('Scraper warning: No world rows found on the page.');
@@ -111,12 +136,13 @@ function detectChanges(currentData) {
             const prevCount = previousWorldData[worldId].players;
             const diff = data.players - prevCount;
 
-            if (diff !== 0) {
+            // Only process when 5 or more players log in
+            if (diff >= 5) {
                 const logEntry = {
                     timestamp,
                     world: worldId,
-                    type: diff > 0 ? 'LOGIN' : 'LOGOUT',
-                    count: Math.abs(diff),
+                    type: 'LOGIN',
+                    count: diff,
                     total: data.players,
                     activity: data.activity
                 };
@@ -128,7 +154,7 @@ function detectChanges(currentData) {
                 broadcast({ type: 'WORLD_UPDATE', data: logEntry, currentData });
 
                 // Dispatch Discord Webhook if threshold is reached
-                if (Math.abs(diff) >= ALERT_THRESHOLD && DISCORD_WEBHOOK_URL) {
+                if (diff >= ALERT_THRESHOLD && DISCORD_WEBHOOK_URL) {
                     sendDiscordWebhook(logEntry);
                 }
             }
