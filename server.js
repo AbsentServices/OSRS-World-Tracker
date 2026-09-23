@@ -21,20 +21,28 @@ const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL_MS || '30000', 10);
 let previousWorldData = {};
 let activityLogs = [];
 
-// Fetch OSRS server listing
+// Fetch OSRS server listing via OSRS Wiki API
 async function fetchWorldData() {
     try {
         const response = await axios.get(
-            //'https://matchmaking.runescape.com/m=serverlist_oldschool/serverlist.json?order=MWAT'
-            'https://oldschool.runescape.com/slu?order=WmpLA'
+            'https://runescape.wiki/api/v2/osrs/worlds',
+            {
+                headers: {
+                    'User-Agent': 'OSRS-World-Tracker - @absent'
+                }
+            }
         );
         
         const currentData = {};
-        response.data.forEach(w => {
-            const worldId = w.id || w.node;
+        // If the response returns an array directly or wraps it under a property:
+        const rawData = response.data.worlds || response.data;
+        const list = Array.isArray(rawData) ? rawData : [];
+
+        list.forEach(w => {
+            const worldId = w.id || w.number;
             currentData[worldId] = {
                 players: w.players,
-                location: w.location,
+                location: w.location || 'Unknown',
                 activity: w.activity || 'Standard'
             };
         });
@@ -42,7 +50,7 @@ async function fetchWorldData() {
         detectChanges(currentData);
         previousWorldData = currentData;
     } catch (error) {
-        console.error('Error querying Jagex servers:', error.message);
+        console.error('Error querying OSRS servers:', error.message);
     }
 }
 
