@@ -10,7 +10,7 @@ A real-time Old School RuneScape world monitoring system featuring web sockets, 
 ## Quick Start
 Clone repository:
 bash
-1.   git clone [[https://github.com/AbsentServices/osrs-world-tracker.git](https://github.com/AbsentServices/OSRS-World-Tracker)](https://github.com/AbsentServices/osrs-world-tracker.git)
+1.   git clone https://github.com/AbsentServices/osrs-world-tracker.git
    cd osrs-world-tracker
 
 2. Install dependencies:
