@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+const cheerio = require('cheerio');
 const http = require('http');
 const WebSocket = require('ws');
 const cors = require('cors');
@@ -21,66 +22,85 @@ const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL_MS || '30000', 10);
 let previousWorldData = {};
 let activityLogs = [];
 
-// Helper function to map integer location IDs to readable names
-function getLocationName(locationId) {
-    const locations = {
-        0: 'US East',
-        1: 'US West',
-        2: 'United Kingdom',
-        3: 'Australia',
-        7: 'Germany'
-    };
-    return locations[locationId] || 'Unknown';
+// Rate-limiting queue for Discord Webhooks
+const webhookQueue = [];
+let isProcessingQueue = false;
+
+async function processWebhookQueue() {
+    if (isProcessingQueue || webhookQueue.length === 0) return;
+    isProcessingQueue = true;
+
+    while (webhookQueue.length > 0) {
+        const payload = webhookQueue.shift();
+        try {
+            await axios.post(DISCORD_WEBHOOK_URL, payload);
+        } catch (err) {
+            if (err.response?.status === 429) {
+                // If hit with 429, requeue the message and wait for Discord's retry_after time
+                const retryAfter = (err.response.data?.retry_after || 1) * 1000;
+                webhookQueue.unshift(payload);
+                await new Promise(resolve => setTimeout(resolve, retryAfter));
+                continue;
+            }
+            console.error('Failed to dispatch Discord webhook:', err.message);
+        }
+
+        // Wait 500ms between successfully sent webhooks to avoid Discord rate limits
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    isProcessingQueue = false;
 }
 
-// Fetch OSRS server listing with fallback endpoint handling
+// Flexible HTML scraper for the OSRS Server List
 async function fetchWorldData() {
-    const endpoints = [
-        'https://game.runescape.com/gamelist.json',
-        'https://api.runelite.net/runelite-1.0.0/worlds.js'
-    ];
+    try {
+        const response = await axios.get('https://oldschool.runescape.com/slu?order=WmpLA', {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            },
+            timeout: 10000
+        });
 
-    let responseData = null;
+        const $ = cheerio.load(response.data);
+        const currentData = {};
 
-    for (const url of endpoints) {
-        try {
-            const res = await axios.get(url, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) OSRS-World-Tracker/1.0'
-                },
-                timeout: 5000
-            });
-            if (res.data) {
-                responseData = res.data;
-                break;
+        // Loop through all table rows across the page
+        $('table tr').each((_, row) => {
+            const cells = $(row).find('td');
+            
+            // Skip headers or rows with fewer than 3 cells
+            if (cells.length < 3) return;
+
+            const worldText = $(cells[0]).text().trim();
+            const playersText = $(cells[1]).text().trim();
+            const locationText = $(cells[2]).text().trim();
+            const activityText = cells.length > 3 ? $(cells[3]).text().trim() : 'Standard';
+
+            // Extract numeric world ID (e.g., "World 301" or "301" -> 301)
+            const worldIdMatch = worldText.match(/\d+/);
+            if (worldIdMatch) {
+                const worldId = parseInt(worldIdMatch[0], 10);
+                const players = parseInt(playersText.replace(/,/g, ''), 10) || 0;
+
+                currentData[worldId] = {
+                    players,
+                    location: locationText || 'Unknown',
+                    activity: activityText || 'Standard'
+                };
             }
-        } catch (e) {
-            // Try next endpoint if this one 404s or times out
-            continue;
+        });
+
+        if (Object.keys(currentData).length === 0) {
+            console.warn('Scraper warning: No world rows found on the page.');
+            return;
         }
+
+        detectChanges(currentData);
+        previousWorldData = currentData;
+    } catch (error) {
+        console.error('Error querying OSRS servers:', error.message);
     }
-
-    if (!responseData) {
-        console.error('Error querying OSRS servers: All endpoints failed or returned 404');
-        return;
-    }
-
-    const currentData = {};
-    const list = Array.isArray(responseData) ? responseData : (responseData.worlds || []);
-
-    list.forEach(w => {
-        const worldId = w.id || w.node;
-        if (worldId) {
-            currentData[worldId] = {
-                players: w.players ?? w.num_players ?? 0,
-                location: typeof w.location === 'number' ? getLocationName(w.location) : (w.location || 'Unknown'),
-                activity: w.activity || 'Standard'
-            };
-        }
-    });
-
-    detectChanges(currentData);
-    previousWorldData = currentData;
 }
 
 function detectChanges(currentData) {
@@ -116,7 +136,7 @@ function detectChanges(currentData) {
     }
 }
 
-async function sendDiscordWebhook(log) {
+function sendDiscordWebhook(log) {
     const isLogin = log.type === 'LOGIN';
     const embed = {
         username: 'OSRS World Monitor',
@@ -135,11 +155,9 @@ async function sendDiscordWebhook(log) {
         }]
     };
 
-    try {
-        await axios.post(DISCORD_WEBHOOK_URL, embed);
-    } catch (err) {
-        console.error('Failed to dispatch Discord webhook:', err.message);
-    }
+    // Push into queue and kick off the rate-limited processor
+    webhookQueue.push(embed);
+    processWebhookQueue();
 }
 
 function broadcast(payload) {
