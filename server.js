@@ -14,7 +14,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const PORT = process.env.PORT || 4000;
+
 const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || '';
 const ALERT_THRESHOLD = parseInt(process.env.ALERT_THRESHOLD || '10', 10);
 const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL_MS || '30000', 10);
@@ -255,6 +255,10 @@ app.get('/api/state', (req, res) => {
 setInterval(fetchWorldData, POLL_INTERVAL);
 fetchWorldData();
 
-server.listen(PORT, () => {
-    console.log(`OSRS World Tracker online at http://localhost:${PORT}`);
+
+const PORT = process.env.PORT || 4000;
+const HOST = process.env.HOST || '0.0.0.0';
+
+server.listen(PORT, HOST, () => {
+    console.log(`OSRS World Tracker online at http://${HOST}:${PORT}`);
 });
