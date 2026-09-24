@@ -52,7 +52,13 @@ async function processWebhookQueue() {
     isProcessingQueue = false;
 }
 
-// Flexible HTML scraper for the OSRS Server List
+
+// Known F2P World IDs to guard against scraping gaps
+const F2P_WORLDS = new Set([
+    301, 308, 316, 326, 335, 371, 372, 379, 380, 381, 382, 383, 384, 385, 
+    393, 394, 433, 434, 435, 436, 437, 469, 475, 476, 483, 501, 562, 563, 571
+]);
+
 async function fetchWorldData() {
     try {
         const response = await axios.get('https://oldschool.runescape.com/slu?order=WmpLA', {
@@ -64,31 +70,50 @@ async function fetchWorldData() {
 
         const $ = cheerio.load(response.data);
         const currentData = {};
-       $('table tr').each((_, row) => {
-    const cells = $(row).find('td');
-    
-    if (cells.length < 3) return;
 
-    const worldText = $(cells[0]).text().trim();
-    const playersText = $(cells[1]).text().trim();
-    const locationText = $(cells[2]).text().trim();
-    const activityText = cells.length > 3 ? $(cells[3]).text().trim() : 'Standard';
+        $('table tr').each((_, row) => {
+            const cells = $(row).find('td');
+            if (cells.length < 5) return;
 
-    // 🛑 Filter out F2P worlds
-    if (activityText === 'Free') return;
+            const worldCellText = $(cells[0]).text().trim(); 
+            const typeText = $(cells[3]).text().trim().toLowerCase(); // Normalize to lowercase
+            const activityText = $(cells[4]).text().trim();
 
-    const worldIdMatch = worldText.match(/\d+/);
-    if (worldIdMatch) {
-        const worldId = parseInt(worldIdMatch[0], 10);
-        const players = parseInt(playersText.replace(/,/g, ''), 10) || 0;
+            // 🛑 1. Filter out F2P using case-insensitive check
+            if (typeText.includes('free')) return;
 
-        currentData[worldId] = {
-            players,
-            location: locationText || 'Unknown',
-            activity: activityText || 'Standard'
-        };
+            const worldIdMatch = worldCellText.match(/\d+/);
+
+            if (worldIdMatch) {
+                let rawId = parseInt(worldIdMatch[0], 10);
+                // Convert relative numbers like "World 1" to "301"
+                const worldId = rawId < 300 ? rawId + 300 : rawId;
+
+                // 🛑 2. Hard block known F2P world numbers as a second layer
+                if (F2P_WORLDS.has(worldId)) return;
+
+                const players = parseInt($(cells[1]).text().trim().replace(/,/g, ''), 10) || 0;
+
+                currentData[worldId] = {
+                    players,
+                    location: $(cells[2]).text().trim() || 'Unknown',
+                    activity: activityText === '-' ? 'Standard' : (activityText || 'Standard')
+                };
+            }
+        });
+
+        if (Object.keys(currentData).length === 0) {
+            console.warn('Scraper warning: No world rows found on the page.');
+            return;
+        }
+
+        detectChanges(currentData);
+        previousWorldData = currentData;
+    } catch (error) {
+        console.error('Error querying OSRS servers:', error.message);
     }
-});
+}
+
         // Loop through all table rows across the page
         // This Tracks all worlds even F2p
  /*       $('table tr').each((_, row) => {
@@ -116,17 +141,6 @@ async function fetchWorldData() {
             }
         });*/
 
-        if (Object.keys(currentData).length === 0) {
-            console.warn('Scraper warning: No world rows found on the page.');
-            return;
-        }
-
-        detectChanges(currentData);
-        previousWorldData = currentData;
-    } catch (error) {
-        console.error('Error querying OSRS servers:', error.message);
-    }
-}
 
 function detectChanges(currentData) {
     const timestamp = new Date().toLocaleTimeString();
@@ -162,7 +176,46 @@ function detectChanges(currentData) {
     }
 }
 
+function getEmbedColor(totalPlayers) {
+    if (totalPlayers >= 1500) {
+        return 0xFF0000; // Red for high population / crowded
+    } else if (totalPlayers >= 800) {
+        return 0xFFA500; // Orange for medium population
+    } else if (totalPlayers >= 300) {
+        return 0xFFFF00; // Yellow for low-medium population
+    } else {
+        return 0x00FF00; // Green for quiet / low population
+    }
+}
+
 function sendDiscordWebhook(log) {
+    const isLogin = log.type === 'LOGIN';
+    const embedColor = getEmbedColor(log.total);
+
+    const embed = {
+        username: 'OSRS World Monitor',
+        avatar_url: 'https://oldschool.runescape.wiki/images/f/f6/Coins_detail.png',
+        embeds: [{
+            title: `${isLogin ? '📈 Player Spike' : '📉 Player Drop'} on World ${log.world}`,
+            description: `A net change of **${isLogin ? '+' : '-'}${log.count} player(s)** was detected.`,
+            color: embedColor,
+            fields: [
+                { name: 'World', value: `World ${log.world}`, inline: true },
+                { name: 'Location', value: log.location || 'Unknown', inline: true },
+                { name: 'New Population', value: `${log.total} / 2000`, inline: true },
+                { name: 'Activity', value: log.activity || 'Standard', inline: true }
+            ],
+            footer: { text: 'OSRS Tracker Alert System' },
+            timestamp: new Date().toISOString()
+        }]
+    };
+
+    // Push into queue and kick off the rate-limited processor
+    webhookQueue.push(embed);
+    processWebhookQueue();
+}
+
+/*function sendDiscordWebhook(log) { //Discord 
     const isLogin = log.type === 'LOGIN';
     const embed = {
         username: 'OSRS World Monitor',
@@ -184,7 +237,7 @@ function sendDiscordWebhook(log) {
     // Push into queue and kick off the rate-limited processor
     webhookQueue.push(embed);
     processWebhookQueue();
-}
+}*/
 
 function broadcast(payload) {
     wss.clients.forEach(client => {
