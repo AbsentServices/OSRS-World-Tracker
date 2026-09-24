@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absent's OSRS World Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+    <div class="max-w-7xl mx-auto p-6">
+        <header class="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-amber-500">OSRS World Population Tracker</h1>
+                <p class="text-slate-400 text-sm">Real-time net login/logout monitor & server list</p>
+            </div>
+            <div id="status" class="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-xs font-semibold">
+                Connecting...
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Feed Column -->
+            <div class="bg-slate-800 rounded-lg p-5 border border-slate-700 shadow-lg">
+                <h2 class="text-lg font-semibold mb-4 text-amber-400">Live Login/Logout Feed</h2>
+                <div id="logs-container" class="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                    <p class="text-slate-500 text-sm">Waiting for world state changes...</p>
+                </div>
+            </div>
+
+            <!-- World Listing Column -->
+            <div class="lg:col-span-2 bg-slate-800 rounded-lg p-5 border border-slate-700 shadow-lg">
+                <h2 class="text-lg font-semibold mb-4 text-amber-400">World Overview</h2>
+                <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="bg-slate-700/50 text-slate-400 sticky top-0">
+                            <tr>
+                                <th class="p-3">World</th>
+                                <th class="p-3">Activity / Theme</th>
+                                <th class="p-3">Location</th>
+                                <th class="p-3 text-right">Players</th>
+                            </tr>
+                        </thead>
+                        <tbody id="world-table-body" class="divide-y divide-slate-700/50">
+                            <tr><td colspan="4" class="p-4 text-center text-slate-500">Loading worlds...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const logsContainer = document.getElementById('logs-container');
+        const tableBody = document.getElementById('world-table-body');
+
+        // Fetch Initial State
+        fetch('/api/state')
+            .then(res => res.json())
+            .then(data => {
+                if(data.logs.length > 0) renderInitialLogs(data.logs);
+                renderTable(data.worlds);
+            });
+
+        // Setup WebSocket
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const ws = new WebSocket(`${protocol}//${location.host}`);
+
+        ws.onopen = () => {
+            statusEl.innerText = 'Connected Live';
+            statusEl.className = 'px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-semibold';
+        };
+
+        ws.onclose = () => {
+            statusEl.innerText = 'Disconnected';
+            statusEl.className = 'px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full text-xs font-semibold';
+        };
+
+        ws.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            if (message.type === 'WORLD_UPDATE') {
+                prependLog(message.data);
+                renderTable(message.currentData);
+            }
+        };
+
+        function prependLog(log) {
+            if (logsContainer.children[0]?.tagName === 'P') logsContainer.innerHTML = '';
+            
+            const isLogin = log.type === 'LOGIN';
+            const card = document.createElement('div');
+            card.className = `p-3 rounded border text-xs flex justify-between items-center ${
+                isLogin ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300' : 'bg-rose-950/30 border-rose-800/50 text-rose-300'
+            }`;
+            card.innerHTML = `
+                <div>
+                    <span class="font-bold">World ${log.world}</span>
+                    <span class="text-slate-400 text-[10px] block">${log.activity}</span>
+                </div>
+                <div class="text-right">
+                    <span class="font-bold">${isLogin ? '+' : '-'}${log.count} Player(s)</span>
+                    <span class="text-slate-400 text-[10px] block">${log.timestamp} (Total: ${log.total})</span>
+                </div>
+            `;
+            logsContainer.prepend(card);
+        }
+
+        function renderInitialLogs(logs) {
+            logsContainer.innerHTML = '';
+            logs.forEach(log => prependLog(log));
+        }
+
+        function renderTable(worlds) {
+            tableBody.innerHTML = '';
+            Object.keys(worlds).forEach(id => {
+                const w = worlds[id];
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-700/30 transition-colors';
+                tr.innerHTML = `
+                    <td class="p-3 font-semibold">World ${id}</td>
+                    <td class="p-3 text-slate-400">${w.activity}</td>
+                    <td class="p-3 text-slate-400">${w.location}</td>
+                    <td class="p-3 text-right font-mono font-bold">${w.players}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
