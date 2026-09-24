@@ -10,49 +10,13 @@ A real-time Old School RuneScape world monitoring system featuring web sockets, 
 ![Website](/images/website.png)
 ![Discordwebhook](/images/discordwebhook.png)
 
-## Quick Start
-Clone repository:
-bash
-1.   git clone https://github.com/AbsentServices/osrs-world-tracker.git
-   cd osrs-world-tracker
 
-2. Install dependencies:
-Bash
-npm install
+## Setup
+- Make a file named .env
+- Make sure to put this in the file
 
-3. Configure environment variables:
-Bash
-cp .env.example .env
-
-**Add your Discord Webhook URL to .env.**
-
-4. Run the server:
-Bash
-npm start
-
-5. **Open http://localhost:4000 in your browser.**
-
-
-
-# Step-by-Step GitHub Upload Instructions
-
-Run the following commands in your terminal from the root folder of your project (`osrs-world-tracker/`):
-
-bash
-## 1. Initialize local Git repository
-git init
-
-## 2. Stage all files
-git add .
-
-## 3. Commit files
-git commit -m "Initial commit: OSRS World Tracker with WebSockets, Webpage, and Discord Webhooks"
-
-## 4. Rename main branch
-git branch -M main
-
-## 5. Link your GitHub repository (replace URL with your GitHub repo link)
-git remote add origin https://github.com/YOUR_USERNAME/osrs-world-tracker.git
-
-## 6. Push code to GitHub
-git push -u origin main
+``` PORT=4000 (Your port)
+HOST=0.0.0.0 (Your IP)
+DISCORD_WEBHOOK_URL=  (Webhook for Discord)
+POLL_INTERVAL_MS=30000 (how fast you want to poll the worlds 30000 = 30 Seconds)
+  
