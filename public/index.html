@@ -4,40 +4,96 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OSRS World Tracker</title>
+
+    <!-- Favicon Links -->
+    <link rel="icon" type="image/png" href="/images/icon.png">
+    <link rel="apple-touch-icon" href="/images/icon-192.png">
+    <link rel="manifest" href="/public/manifest.json">
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom sleek scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen">
-    <div class="max-w-7xl mx-auto p-6">
-        <header class="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
+    <div class="max-w-7xl mx-auto p-6 space-y-6">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-700 pb-4 gap-4">
             <div>
-                <h1 class="text-3xl font-bold text-amber-500">OSRS World Population Tracker</h1>
+                <h1 class="text-3xl font-bold text-amber-500 tracking-tight">OSRS World Population Tracker</h1>
                 <p class="text-slate-400 text-sm">Real-time net login/logout monitor & server list</p>
             </div>
-            <div id="status" class="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-xs font-semibold">
-                Connecting...
+            <div class="flex items-center gap-3">
+                <span id="last-sync" class="text-xs text-slate-400 hidden sm:inline">Syncing...</span>
+                <div id="status" class="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-xs font-semibold">
+                    Connecting...
+                </div>
             </div>
         </header>
 
+        <!-- Summary Metrics Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="bg-slate-800 border border-slate-700/80 rounded-lg p-4 shadow-md flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Tracked Worlds</p>
+                    <p id="stat-total-worlds" class="text-2xl font-bold text-slate-100 mt-1">0</p>
+                </div>
+                <div class="p-3 bg-amber-500/10 text-amber-400 rounded-lg border border-amber-500/20">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round5" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+            </div>
+            <div class="bg-slate-800 border border-slate-700/80 rounded-lg p-4 shadow-md flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Online Players</p>
+                    <p id="stat-total-players" class="text-2xl font-bold text-emerald-400 mt-1">0</p>
+                </div>
+                <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                </div>
+            </div>
+            <div class="bg-slate-800 border border-slate-700/80 rounded-lg p-4 shadow-md flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Busiest World</p>
+                    <p id="stat-busiest-world" class="text-2xl font-bold text-amber-400 mt-1">None</p>
+                </div>
+                <div class="p-3 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Feed Column -->
-            <div class="bg-slate-800 rounded-lg p-5 border border-slate-700 shadow-lg">
-                <h2 class="text-lg font-semibold mb-4 text-amber-400">Live Login/Logout Feed</h2>
-                <div id="logs-container" class="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+            <div class="bg-slate-800 rounded-lg p-5 border border-slate-700 shadow-lg flex flex-col h-[600px]">
+                <h2 class="text-lg font-semibold mb-4 text-amber-400 flex items-center justify-between">
+                    <span>Live Login/Logout Feed</span>
+                    <span class="text-xs font-normal text-slate-400">Net diff &ge; 5</span>
+                </h2>
+                <div id="logs-container" class="space-y-3 overflow-y-auto pr-2 flex-grow">
                     <p class="text-slate-500 text-sm">Waiting for world state changes...</p>
                 </div>
             </div>
 
             <!-- World Listing Column -->
-            <div class="lg:col-span-2 bg-slate-800 rounded-lg p-5 border border-slate-700 shadow-lg">
-                <h2 class="text-lg font-semibold mb-4 text-amber-400">World Overview</h2>
-                <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+            <div class="lg:col-span-2 bg-slate-800 rounded-lg p-5 border border-slate-700 shadow-lg flex flex-col h-[600px]">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+                    <h2 class="text-lg font-semibold text-amber-400">World Overview</h2>
+                    <input type="text" id="world-search" placeholder="Search world, activity, location..." 
+                        class="bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500 w-full sm:w-72">
+                </div>
+                <div class="overflow-x-auto overflow-y-auto flex-grow rounded border border-slate-700/50">
                     <table class="w-full text-left text-sm text-slate-300">
-                        <thead class="bg-slate-700/50 text-slate-400 sticky top-0">
+                        <thead class="bg-slate-700/50 text-slate-400 sticky top-0 z-10 backdrop-blur-sm">
                             <tr>
-                                <th class="p-3">World</th>
-                                <th class="p-3">Activity / Theme</th>
+                                <th class="p-3 cursor-pointer hover:text-amber-400" onclick="sortTable('id')">World ↕</th>
+                                <th class="p-3 cursor-pointer hover:text-amber-400" onclick="sortTable('activity')">Activity / Theme ↕</th>
                                 <th class="p-3">Location</th>
-                                <th class="p-3 text-right">Players</th>
+                                <th class="p-3 text-right cursor-pointer hover:text-amber-400" onclick="sortTable('players')">Players ↕</th>
                             </tr>
                         </thead>
                         <tbody id="world-table-body" class="divide-y divide-slate-700/50">
@@ -53,43 +109,87 @@
         const statusEl = document.getElementById('status');
         const logsContainer = document.getElementById('logs-container');
         const tableBody = document.getElementById('world-table-body');
+        const searchInput = document.getElementById('world-search');
+        const lastSyncEl = document.getElementById('last-sync');
+
+        const statWorlds = document.getElementById('stat-total-worlds');
+        const statPlayers = document.getElementById('stat-total-players');
+        const statBusiest = document.getElementById('stat-busiest-world');
+
+        let globalWorlds = {};
+        let currentSort = { column: 'id', asc: true };
 
         // Fetch Initial State
         fetch('/api/state')
             .then(res => res.json())
             .then(data => {
-                if(data.logs.length > 0) renderInitialLogs(data.logs);
-                renderTable(data.worlds);
+                if(data.logs && data.logs.length > 0) renderInitialLogs(data.logs);
+                if(data.worlds) {
+                    globalWorlds = data.worlds;
+                    updateDashboard(globalWorlds);
+                }
             });
 
-        // Setup WebSocket
-        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//${location.host}`);
+        // Setup WebSocket with Auto-Reconnect
+        function connectWebSocket() {
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const ws = new WebSocket(`${protocol}//${location.host}`);
 
-        ws.onopen = () => {
-            statusEl.innerText = 'Connected Live';
-            statusEl.className = 'px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-semibold';
-        };
+            ws.onopen = () => {
+                statusEl.innerText = 'Connected Live';
+                statusEl.className = 'px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-semibold';
+            };
 
-        ws.onclose = () => {
-            statusEl.innerText = 'Disconnected';
-            statusEl.className = 'px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full text-xs font-semibold';
-        };
+            ws.onclose = () => {
+                statusEl.innerText = 'Disconnected (Reconnecting...)';
+                statusEl.className = 'px-3 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full text-xs font-semibold';
+                setTimeout(connectWebSocket, 3000);
+            };
 
-        ws.onmessage = (event) => {
-            const message = JSON.parse(event.data);
-            if (message.type === 'WORLD_UPDATE') {
-                prependLog(message.data);
-                renderTable(message.currentData);
-            }
-        };
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                if (message.type === 'WORLD_UPDATE') {
+                    prependLog(message.data);
+                    globalWorlds = message.currentData;
+                    updateDashboard(globalWorlds);
+                }
+            };
+        }
+        connectWebSocket();
+
+        searchInput.addEventListener('input', () => renderTable(globalWorlds));
+
+        function updateDashboard(worlds) {
+            lastSyncEl.innerText = `Last synced: ${new Date().toLocaleTimeString()}`;
+            
+            const worldIds = Object.keys(worlds);
+            statWorlds.innerText = worldIds.length;
+
+            let totalPlayers = 0;
+            let busiestId = 'None';
+            let maxPlayers = -1;
+
+            worldIds.forEach(id => {
+                const count = worlds[id].players;
+                totalPlayers += count;
+                if (count > maxPlayers) {
+                    maxPlayers = count;
+                    busiestId = `W${id} (${maxPlayers})`;
+                }
+            });
+
+            statPlayers.innerText = totalPlayers.toLocaleString();
+            statBusiest.innerText = busiestId;
+
+            renderTable(worlds);
+        }
 
         function prependLog(log) {
             if (logsContainer.children[0]?.tagName === 'P') logsContainer.innerHTML = '';
             
             const isLogin = log.type === 'LOGIN';
             const card = document.createElement('div');
-            card.className = `p-3 rounded border text-xs flex justify-between items-center ${
+            card.className = `p-3 rounded border text-xs flex justify-between items-center animate-fade-in ${
                 isLogin ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300' : 'bg-rose-950/30 border-rose-800/50 text-rose-300'
             }`;
             card.innerHTML = `
@@ -110,17 +210,77 @@
             logs.forEach(log => prependLog(log));
         }
 
+        function sortTable(column) {
+            if (currentSort.column === column) {
+                currentSort.asc = !currentSort.asc;
+            } else {
+                currentSort.column = column;
+                currentSort.asc = true;
+            }
+            renderTable(globalWorlds);
+        }
+
         function renderTable(worlds) {
+            const query = searchInput.value.toLowerCase();
             tableBody.innerHTML = '';
-            Object.keys(worlds).forEach(id => {
+            
+            let keys = Object.keys(worlds).filter(id => {
                 const w = worlds[id];
+                return id.includes(query) || 
+                       w.activity.toLowerCase().includes(query) || 
+                       w.location.toLowerCase().includes(query);
+            });
+
+            keys.sort((a, b) => {
+                let valA = worlds[a][currentSort.column] || a;
+                let valB = worlds[b][currentSort.column] || b;
+
+                if (currentSort.column === 'id') {
+                    valA = parseInt(a, 10);
+                    valB = parseInt(b, 10);
+                } else if (currentSort.column === 'players') {
+                    valA = parseInt(valA, 10);
+                    valB = parseInt(valB, 10);
+                }
+
+                if (valA < valB) return currentSort.asc ? -1 : 1;
+                if (valA > valB) return currentSort.asc ? 1 : -1;
+                return 0;
+            });
+
+            if (keys.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-500">No matching worlds found.</td></tr>`;
+                return;
+            }
+
+            keys.forEach(id => {
+                const w = worlds[id];
+                const capacityPercent = Math.min(Math.round((w.players / 2000) * 100), 100);
+                
+                let playerColor = 'text-emerald-400';
+                let barColor = 'bg-emerald-500';
+                if (w.players >= 1500) {
+                    playerColor = 'text-rose-400 font-bold';
+                    barColor = 'bg-rose-500';
+                } else if (w.players >= 800) {
+                    playerColor = 'text-amber-400 font-medium';
+                    barColor = 'bg-amber-500';
+                }
+
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-700/30 transition-colors';
                 tr.innerHTML = `
                     <td class="p-3 font-semibold">World ${id}</td>
                     <td class="p-3 text-slate-400">${w.activity}</td>
                     <td class="p-3 text-slate-400">${w.location}</td>
-                    <td class="p-3 text-right font-mono font-bold">${w.players}</td>
+                    <td class="p-3 text-right">
+                        <div class="flex flex-col items-end">
+                            <span class="font-mono ${playerColor}">${w.players}</span>
+                            <div class="w-20 bg-slate-700 rounded-full h-1.5 mt-1 overflow-hidden">
+                                <div class="${barColor} h-1.5 rounded-full" style="width: ${capacityPercent}%"></div>
+                            </div>
+                        </div>
+                    </td>
                 `;
                 tableBody.appendChild(tr);
             });

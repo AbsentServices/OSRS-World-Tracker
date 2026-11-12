@@ -1,5 +1,7 @@
 # OSRS World Population & Activity Tracker
 
+![Banner](/images/osrs-world-banner.png)
+
 A real-time Old School RuneScape world monitoring system featuring web sockets, a live browser dashboard, and configurable Discord webhook alerts.
 
 ## Features
