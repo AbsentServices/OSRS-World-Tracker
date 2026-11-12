@@ -76,11 +76,14 @@ async function fetchWorldData() {
             if (cells.length < 5) return;
 
             const worldCellText = $(cells[0]).text().trim(); 
-            const typeText = $(cells[3]).text().trim().toLowerCase(); // Normalize to lowercase
-            const activityText = $(cells[4]).text().trim();
+            const typeText = $(cells[3]).text().trim().toLowerCase(); // Normalize type text
+            const activityText = $(cells[4]).text().trim().toLowerCase(); // Normalize activity text
 
-            // 🛑 1. Filter out F2P using case-insensitive check
+            // 1. Filter out F2P using case-insensitive check
             if (typeText.includes('free')) return;
+
+            // 2. Filter out Hardcore and other restricted worlds (e.g., Deadman, High Risk, PVP, etc., if desired)
+            if (typeText.includes('hardcore') || activityText.includes('hardcore')) return;
 
             const worldIdMatch = worldCellText.match(/\d+/);
 
@@ -89,15 +92,18 @@ async function fetchWorldData() {
                 // Convert relative numbers like "World 1" to "301"
                 const worldId = rawId < 300 ? rawId + 300 : rawId;
 
-                // 🛑 2. Hard block known F2P world numbers as a second layer
+                // 3. Hard block known F2P world numbers as a second layer
                 if (F2P_WORLDS.has(worldId)) return;
 
                 const players = parseInt($(cells[1]).text().trim().replace(/,/g, ''), 10) || 0;
 
+                // Grab original un-lowercased activity text for display purposes
+                const rawActivityText = $(cells[4]).text().trim();
+
                 currentData[worldId] = {
                     players,
                     location: $(cells[2]).text().trim() || 'Unknown',
-                    activity: activityText === '-' ? 'Standard' : (activityText || 'Standard')
+                    activity: rawActivityText === '-' ? 'Standard' : (rawActivityText || 'Standard')
                 };
             }
         });
