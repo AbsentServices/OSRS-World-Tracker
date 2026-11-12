@@ -59,6 +59,15 @@ const F2P_WORLDS = new Set([
     393, 394, 433, 434, 435, 436, 437, 469, 475, 476, 483, 501, 562, 563, 571
 ]);
 
+const HCW_WORLDS = new Set([
+    634, 635, 636, 637, 638, 639, 640, 641, 643, 644, 645, 646, 647, 648, 649, 650, 651, 652, 653,
+    654, 655, 656, 657, 658, 659, 669, 670, 671, 672, 673, 674
+]);
+
+const Speedrunning = new Set([
+    576, 540, 502, 549, 568
+]);
+
 async function fetchWorldData() {
     try {
         const response = await axios.get('https://oldschool.runescape.com/slu?order=WmpLA', {
@@ -76,14 +85,14 @@ async function fetchWorldData() {
             if (cells.length < 5) return;
 
             const worldCellText = $(cells[0]).text().trim(); 
-            const typeText = $(cells[3]).text().trim().toLowerCase(); // Normalize type text
-            const activityText = $(cells[4]).text().trim().toLowerCase(); // Normalize activity text
+            const typeText = $(cells[3]).text().trim().toLowerCase(); 
+            const activityText = $(cells[4]).text().trim().toLowerCase();
 
             // 1. Filter out F2P using case-insensitive check
             if (typeText.includes('free')) return;
 
-            // 2. Filter out Hardcore and other restricted worlds (e.g., Deadman, High Risk, PVP, etc., if desired)
-            if (typeText.includes('hardcore') || activityText.includes('hardcore')) return;
+            // 2. Filter out Hardcore worlds explicitly, leaving PvP and other modes intact
+            if (typeText.includes('hardcore world') || activityText.includes('hardcore')) return;
 
             const worldIdMatch = worldCellText.match(/\d+/);
 
@@ -94,10 +103,15 @@ async function fetchWorldData() {
 
                 // 3. Hard block known F2P world numbers as a second layer
                 if (F2P_WORLDS.has(worldId)) return;
+                // 4. Hard block known Hardcore world numbers as a second layer
+                if (HCW_WORLDS.has(worldId)) return;
+                // 5. Hard block known Speedrunning world numbers as a second layer
+                if (Speedrunning.has(worldId)) return;
+
+                
 
                 const players = parseInt($(cells[1]).text().trim().replace(/,/g, ''), 10) || 0;
 
-                // Grab original un-lowercased activity text for display purposes
                 const rawActivityText = $(cells[4]).text().trim();
 
                 currentData[worldId] = {
@@ -119,6 +133,7 @@ async function fetchWorldData() {
         console.error('Error querying OSRS servers:', error.message);
     }
 }
+
 
         // Loop through all table rows across the page
         // This Tracks all worlds even F2p
