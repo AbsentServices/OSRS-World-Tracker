@@ -68,6 +68,10 @@ const Speedrunning = new Set([
     576, 540, 502, 549, 568
 ]);
 
+const DMM_WORLDS = new Set([
+    345
+]);
+
 async function fetchWorldData() {
     try {
         const response = await axios.get('https://oldschool.runescape.com/slu?order=WmpLA', {
@@ -107,6 +111,8 @@ async function fetchWorldData() {
                 if (HCW_WORLDS.has(worldId)) return;
                 // 5. Hard block known Speedrunning world numbers as a second layer
                 if (Speedrunning.has(worldId)) return;
+                // 6. Hard block known Deadman world numbers as a second layer
+                if (DMM_WORLDS.has(worldId)) return;
 
                 
 
